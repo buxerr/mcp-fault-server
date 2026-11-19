@@ -1,23 +1,42 @@
-# MCP Fault Server
+# MCP Mock Server for Deterministic Fault-Injection Tests
 
-A dependency-free MCP server fixture for integration tests. It answers initialize, ping, tools/list, and schema-checked tools/call requests over newline-delimited stdio JSON-RPC. Ordered fault rules can simulate missing responses, malformed lines, permission errors, and tool-level partial failures.
+A dependency-free Node.js MCP server fixture for integration tests. It serves `initialize`, `ping`, `tools/list`, and schema-checked `tools/call` over newline-delimited stdio JSON-RPC, with ordered fault rules for timeouts, malformed responses, permission errors, and partial tool failures.
 
-## Run
+Use it to test how an MCP client handles repeatable protocol and tool failures without contacting a model provider.
 
-Use Node.js 20 or newer. Run npm test to execute the built-in test suite. Install the package and launch mcp-fault-server fixtures/basic.json to run the sample stdio server. It writes protocol replies only to stdout and diagnostics only to stderr.
+## Run the fixture
 
-## Fixture model
+Requires Node.js 20 or newer:
 
-Define tools with a bounded object input schema. The validator supports string, number, integer, and boolean properties, required keys, enums, numeric bounds, string-length bounds, and additionalProperties. This is an intentional JSON Schema subset, not a full validator.
+```sh
+git clone https://github.com/buxerr/mcp-fault-server.git
+cd mcp-fault-server
+npm install
+npm test
+node src/cli.js fixtures/basic.json
+```
 
-Configure fixed result sequences in toolResults. After the last result, the server repeats that result. Fault rules use a 1-based occurrence for a method or a method/tool pair. A tool-specific rule takes precedence over a method-wide rule at the same request. A timeout means no reply is emitted; malformed sends the configured raw line; rpc-error returns a JSON-RPC error; tool-error returns an MCP tool result marked isError.
+The sample fixture defines a schema-checked `lookup` tool and injects a JSON-RPC permission error on its second call. Protocol replies go to stdout; diagnostics go to stderr.
 
-## API
+## Define tools and inject failures
 
-Create an MCPMockServer with tool definitions and fault rules, then call handleLine for one input JSON-RPC line. It returns one response line, null for a notification or injected timeout, or the injected malformed line. serveStdio binds this handler to stdin/stdout and pauses input during output backpressure.
+Configure fixed tool results with `toolResults` and ordered entries in `faults`. A fault rule targets a 1-based occurrence of a method or a method/tool pair. A tool-specific rule takes precedence over a method-wide rule at the same occurrence.
 
-## Scope
+Supported modes include:
 
-This project covers deterministic tools-only server fixtures. It does not implement resources, prompts, sampling, OAuth, full JSON Schema, client negotiation, or a real model provider. It does not sleep for injected timeouts, so tests stay deterministic; clients should enforce their own timeout.
+- `timeout`: emit no response for the matching request
+- `malformed`: emit the configured raw line
+- `rpc-error`: return a JSON-RPC error
+- `tool-error`: return an MCP tool result marked `isError`
 
-MIT licensed. See LICENSE.
+The input-schema validator supports string, number, integer, and boolean properties, required keys, enums, numeric bounds, string-length bounds, and `additionalProperties`. It is an intentional JSON Schema subset, not a complete validator.
+
+The programmatic API exposes `MCPMockServer.handleLine` for a single input line and `serveStdio` for newline-delimited stdio. `handleLine` returns a response line, `null` for a notification or injected timeout, or the configured malformed line.
+
+## Scope and limitations
+
+This fixture covers deterministic tools-only MCP servers. It does not implement resources, prompts, sampling, OAuth, full JSON Schema, client negotiation, or a model provider. Injected timeouts do not sleep; clients should enforce their own timeout.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
