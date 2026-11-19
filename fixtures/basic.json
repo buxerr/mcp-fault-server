@@ -1,0 +1,34 @@
+{
+  "name": "basic-fixture",
+  "version": "0.1.0",
+  "protocolVersion": "2025-11-25",
+  "tools": [
+    {
+      "name": "lookup",
+      "description": "Return a deterministic lookup fixture.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "maxLength": 32 }
+        },
+        "required": ["key"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "toolResults": {
+    "lookup": {
+      "content": [{ "type": "text", "text": "fixture result" }]
+    }
+  },
+  "faults": [
+    {
+      "method": "tools/call",
+      "toolName": "lookup",
+      "occurrence": 2,
+      "mode": "rpc-error",
+      "code": -32003,
+      "message": "injected permission denial"
+    }
+  ]
+}
